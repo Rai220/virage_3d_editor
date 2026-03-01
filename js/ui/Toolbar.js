@@ -359,6 +359,27 @@ export class Toolbar {
         return;
       }
 
+      // Copy: Ctrl+C
+      if (e.ctrlKey && e.key === 'c') {
+        e.preventDefault();
+        const count = this.editor.copySelected();
+        if (count > 0) {
+          this._setStatus(count > 1 ? `Скопировано объектов: ${count}` : 'Объект скопирован');
+        }
+        return;
+      }
+
+      // Paste: Ctrl+V
+      if (e.ctrlKey && e.key === 'v') {
+        e.preventDefault();
+        const pasted = this.editor.pasteClipboard();
+        if (pasted.length > 0) {
+          this.viewport.transformControls.attach(pasted[pasted.length - 1]);
+          this._setStatus(pasted.length > 1 ? `Вставлено объектов: ${pasted.length}` : 'Объект вставлен');
+        }
+        return;
+      }
+
       // Duplicate: Ctrl+D
       if (e.ctrlKey && e.key === 'd') {
         e.preventDefault();

@@ -111,6 +111,37 @@ export class Editor extends EventTarget {
     return mesh;
   }
 
+  copySelected() {
+    if (this.selectedSet.size === 0) return 0;
+    this._clipboard = [...this.selectedSet].map((src) => ({
+      geometry: src.geometry.clone(),
+      material: src.material.clone(),
+      name: src.name,
+      position: src.position.clone(),
+      rotation: src.rotation.clone(),
+      scale: src.scale.clone(),
+    }));
+    return this._clipboard.length;
+  }
+
+  pasteClipboard() {
+    if (!this._clipboard || this._clipboard.length === 0) return [];
+    const pasted = [];
+    this._clipboard.forEach((snap) => {
+      const mesh = new THREE.Mesh(snap.geometry.clone(), snap.material.clone());
+      mesh.name = snap.name;
+      mesh.position.copy(snap.position);
+      mesh.position.x += 10;
+      mesh.rotation.copy(snap.rotation);
+      mesh.scale.copy(snap.scale);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.addObject(mesh);
+      pasted.push(mesh);
+    });
+    return pasted;
+  }
+
   undo() {
     const ok = this.history.undo();
     this.dispatchEvent(new CustomEvent('historyChanged'));
