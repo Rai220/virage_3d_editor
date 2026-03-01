@@ -1,17 +1,24 @@
+import { TransformCmd } from '../commands/TransformCmd.js';
+
 export class Toolbar {
-  constructor(editor, primitiveTool, viewport, booleanTool, projectIO) {
+  constructor(editor, primitiveTool, viewport, booleanTool, projectIO, stlExport, stlImport) {
     this.editor = editor;
     this.primitiveTool = primitiveTool;
     this.viewport = viewport;
     this.booleanTool = booleanTool;
     this.projectIO = projectIO;
+    this.stlExport = stlExport;
+    this.stlImport = stlImport;
 
     this._booleanMode = null;
 
     this._bindPrimitives();
     this._bindBooleanOps();
     this._bindSaveLoad();
+    this._bindExportImport();
+    this._bindUndoRedo();
     this._bindTransformModes();
+    this._bindTransformRecording();
     this._bindGridSize();
     this._bindKeyboard();
     this._bindDelete();
@@ -38,20 +45,18 @@ export class Toolbar {
   }
 
   _bindBooleanOps() {
-    const unionBtn = document.getElementById('btn-boolean-union');
-    const subtractBtn = document.getElementById('btn-boolean-subtract');
+    const ops = {
+      'btn-boolean-union': 'union',
+      'btn-boolean-subtract': 'subtract',
+      'btn-boolean-intersect': 'intersect',
+    };
 
-    if (unionBtn) {
-      unionBtn.addEventListener('click', () => {
-        this._startBooleanMode('union');
-      });
-    }
-
-    if (subtractBtn) {
-      subtractBtn.addEventListener('click', () => {
-        this._startBooleanMode('subtract');
-      });
-    }
+    Object.entries(ops).forEach(([id, mode]) => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.addEventListener('click', () => this._startBooleanMode(mode));
+      }
+    });
   }
 
   _startBooleanMode(mode) {
@@ -69,8 +74,8 @@ export class Toolbar {
     }
 
     this._booleanMode = { mode, baseObject: selected };
-    const label = mode === 'union' ? 'объединения' : 'вычитания';
-    this._setStatus(`Кликните по второму объекту для ${label}`);
+    const labels = { union: 'объединения', subtract: 'вычитания', intersect: 'пересечения' };
+    this._setStatus(`Кликните по второму объекту для ${labels[mode]}`);
 
     this._booleanClickHandler = (e) => {
       if (!this._booleanMode) return;
@@ -90,19 +95,21 @@ export class Toolbar {
       const hit = intersects.find((i) => i.object !== this._booleanMode.baseObject);
       if (hit) {
         const target = hit.object;
-
         const base = this._booleanMode.baseObject;
         const boolMode = this._booleanMode.mode;
         this._cancelBooleanMode();
 
+        const statusLabels = { union: 'Объединение', subtract: 'Вычитание', intersect: 'Пересечение' };
+
         try {
           if (boolMode === 'union') {
             this.booleanTool.union(base, target);
-            this._setStatus('Объединение выполнено');
-          } else {
+          } else if (boolMode === 'subtract') {
             this.booleanTool.subtract(base, target);
-            this._setStatus('Вычитание выполнено');
+          } else {
+            this.booleanTool.intersect(base, target);
           }
+          this._setStatus(`${statusLabels[boolMode]} выполнено`);
         } catch (err) {
           console.error('Boolean operation failed:', err);
           this._setStatus('Ошибка булевой операции — проверьте пересечение объектов');
@@ -142,6 +149,53 @@ export class Toolbar {
     }
   }
 
+  _bindExportImport() {
+    const exportBtn = document.getElementById('btn-export');
+    const importBtn = document.getElementById('btn-import-stl');
+
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        this._cancelBooleanMode();
+        if (this.stlExport.export()) {
+          this._setStatus('STL экспортирован');
+        } else {
+          this._setStatus('Нет объектов для экспорта');
+        }
+      });
+    }
+
+    if (importBtn) {
+      importBtn.addEventListener('click', () => {
+        this._cancelBooleanMode();
+        this.stlImport.import();
+        this._setStatus('Импорт STL…');
+      });
+    }
+  }
+
+  _bindUndoRedo() {
+    const undoBtn = document.getElementById('btn-undo');
+    const redoBtn = document.getElementById('btn-redo');
+
+    if (undoBtn) {
+      undoBtn.addEventListener('click', () => {
+        if (this.editor.undo()) {
+          this.viewport.transformControls.detach();
+          this._setStatus('Отменено');
+        }
+      });
+    }
+
+    if (redoBtn) {
+      redoBtn.addEventListener('click', () => {
+        if (this.editor.redo()) {
+          this.viewport.transformControls.detach();
+          this._setStatus('Повторено');
+        }
+      });
+    }
+  }
+
   _bindTransformModes() {
     const modes = {
       'btn-translate': 'translate',
@@ -151,10 +205,39 @@ export class Toolbar {
 
     Object.entries(modes).forEach(([id, mode]) => {
       document.getElementById(id).addEventListener('click', () => {
-        this.viewport.setTransformMode(mode);
-        document.querySelectorAll('.statusbar-btn').forEach((b) => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
+        this._setTransformModeUI(mode, id);
       });
+    });
+  }
+
+  _setTransformModeUI(mode, btnId) {
+    this.viewport.setTransformMode(mode);
+    document.querySelectorAll('.statusbar-btn').forEach((b) => b.classList.remove('active'));
+    if (btnId) document.getElementById(btnId).classList.add('active');
+  }
+
+  _bindTransformRecording() {
+    let oldPos, oldRot, oldScale, activeMesh;
+
+    this.viewport.transformControls.addEventListener('mouseDown', () => {
+      activeMesh = this.viewport.transformControls.object;
+      if (!activeMesh) return;
+      oldPos = activeMesh.position.clone();
+      oldRot = activeMesh.rotation.clone();
+      oldScale = activeMesh.scale.clone();
+    });
+
+    this.viewport.transformControls.addEventListener('mouseUp', () => {
+      if (!activeMesh || !oldPos) return;
+      const cmd = new TransformCmd(
+        activeMesh, oldPos, oldRot, oldScale,
+        activeMesh.position.clone(), activeMesh.rotation.clone(), activeMesh.scale.clone()
+      );
+      this.editor.history.undoStack.push(cmd);
+      this.editor.history.redoStack = [];
+      activeMesh = null;
+      oldPos = null;
+      this.editor.dispatchEvent(new CustomEvent('selectionChanged', { detail: this.editor.selected }));
     });
   }
 
@@ -168,14 +251,81 @@ export class Toolbar {
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-      if (e.key === 'w') this.viewport.setTransformMode('translate');
-      if (e.key === 'e') this.viewport.setTransformMode('rotate');
-      if (e.key === 'r') this.viewport.setTransformMode('scale');
+      // Undo: Ctrl+Z
+      if (e.ctrlKey && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        if (this.editor.undo()) {
+          this.viewport.transformControls.detach();
+          this._setStatus('Отменено');
+        }
+        return;
+      }
+
+      // Redo: Ctrl+Shift+Z
+      if (e.ctrlKey && e.shiftKey && e.key === 'Z') {
+        e.preventDefault();
+        if (this.editor.redo()) {
+          this.viewport.transformControls.detach();
+          this._setStatus('Повторено');
+        }
+        return;
+      }
+
+      // Duplicate: Ctrl+D
+      if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        const dup = this.editor.duplicateSelected();
+        if (dup) {
+          this.viewport.transformControls.attach(dup);
+          this._setStatus('Дубликат создан');
+        }
+        return;
+      }
+
+      // Save: Ctrl+S
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        this.projectIO.save();
+        this._setStatus('Проект сохранён');
+        return;
+      }
+
+      // Export STL: Ctrl+E
+      if (e.ctrlKey && e.key === 'e') {
+        e.preventDefault();
+        if (this.stlExport.export()) {
+          this._setStatus('STL экспортирован');
+        }
+        return;
+      }
+
+      // Focus: F
+      if (e.key === 'f') {
+        this.viewport.focusSelected();
+        return;
+      }
+
+      // Transform modes
+      if (e.key === 'w') this._setTransformModeUI('translate', 'btn-translate');
+      if (e.key === 'e') this._setTransformModeUI('rotate', 'btn-rotate');
+      if (e.key === 'r') this._setTransformModeUI('scale', 'btn-scale');
+
+      // Escape
       if (e.key === 'Escape') this._cancelBooleanMode();
+
+      // Delete
       if (e.key === 'Delete' && this.editor.selected) {
         this.editor.removeObject(this.editor.selected);
         this.viewport.transformControls.detach();
         this._setStatus('Объект удалён');
+      }
+
+      // Camera views: 1-6
+      const viewMap = { '1': 'front', '2': 'back', '3': 'left', '4': 'right', '5': 'top', '6': 'bottom' };
+      if (viewMap[e.key]) {
+        this.viewport.setCameraView(viewMap[e.key]);
+        const viewNames = { front: 'Спереди', back: 'Сзади', left: 'Слева', right: 'Справа', top: 'Сверху', bottom: 'Снизу' };
+        this._setStatus(`Вид: ${viewNames[viewMap[e.key]]}`);
       }
     });
   }

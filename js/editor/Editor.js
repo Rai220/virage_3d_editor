@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { CommandHistory } from '../commands/CommandHistory.js';
+import { AddObjectCmd } from '../commands/AddObjectCmd.js';
+import { RemoveObjectCmd } from '../commands/RemoveObjectCmd.js';
 
 export class Editor extends EventTarget {
   constructor() {
@@ -6,9 +9,15 @@ export class Editor extends EventTarget {
     this.scene = new THREE.Scene();
     this.objects = [];
     this.selected = null;
+    this.history = new CommandHistory();
   }
 
   addObject(mesh) {
+    const cmd = new AddObjectCmd(this, mesh);
+    this.history.execute(cmd);
+  }
+
+  addObjectDirect(mesh) {
     this.scene.add(mesh);
     this.objects.push(mesh);
     this.dispatchEvent(new CustomEvent('objectAdded', { detail: mesh }));
@@ -16,13 +25,8 @@ export class Editor extends EventTarget {
   }
 
   removeObject(mesh) {
-    this.scene.remove(mesh);
-    const idx = this.objects.indexOf(mesh);
-    if (idx !== -1) this.objects.splice(idx, 1);
-    if (this.selected === mesh) this.select(null);
-    mesh.geometry.dispose();
-    if (mesh.material.dispose) mesh.material.dispose();
-    this.dispatchEvent(new CustomEvent('objectRemoved', { detail: mesh }));
+    const cmd = new RemoveObjectCmd(this, mesh);
+    this.history.execute(cmd);
   }
 
   select(mesh) {
@@ -36,6 +40,35 @@ export class Editor extends EventTarget {
     this.dispatchEvent(new CustomEvent('selectionChanged', { detail: mesh }));
   }
 
+  duplicateSelected() {
+    if (!this.selected) return null;
+    const src = this.selected;
+    const geometry = src.geometry.clone();
+    const material = src.material.clone();
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = src.name;
+    mesh.position.copy(src.position);
+    mesh.position.x += 10;
+    mesh.rotation.copy(src.rotation);
+    mesh.scale.copy(src.scale);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.addObject(mesh);
+    return mesh;
+  }
+
+  undo() {
+    const ok = this.history.undo();
+    this.dispatchEvent(new CustomEvent('historyChanged'));
+    return ok;
+  }
+
+  redo() {
+    const ok = this.history.redo();
+    this.dispatchEvent(new CustomEvent('historyChanged'));
+    return ok;
+  }
+
   clearScene() {
     const toRemove = [...this.objects];
     toRemove.forEach((mesh) => {
@@ -45,6 +78,7 @@ export class Editor extends EventTarget {
     });
     this.objects = [];
     this.selected = null;
+    this.history.clear();
     this.dispatchEvent(new CustomEvent('selectionChanged', { detail: null }));
     this.dispatchEvent(new CustomEvent('sceneCleared'));
   }
@@ -61,7 +95,8 @@ export class Editor extends EventTarget {
     meshB.geometry.dispose();
     if (meshB.material.dispose) meshB.material.dispose();
 
-    this.addObject(result);
+    this.addObjectDirect(result);
+    this.history.clear();
   }
 
   getObjects() {

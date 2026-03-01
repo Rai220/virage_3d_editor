@@ -8,15 +8,28 @@ export class PropertiesPanel {
     });
   }
 
+  _colorToHex(color) {
+    return '#' + color.getHexString();
+  }
+
   _update(mesh) {
     if (!mesh) {
       this.container.innerHTML = '<p class="hint">Выберите объект для редактирования</p>';
       return;
     }
 
+    const currentColor = this._colorToHex(mesh.material.color);
+
     this.container.innerHTML = `
       <div class="prop-group">
         <label>Тип: <strong>${mesh.name || 'Объект'}</strong></label>
+      </div>
+      <div class="prop-group">
+        <label>Цвет</label>
+        <div class="prop-row color-row">
+          <input type="color" id="prop-color" value="${currentColor}">
+          <span class="color-value">${currentColor}</span>
+        </div>
       </div>
       <div class="prop-group">
         <label>Позиция</label>
@@ -48,9 +61,32 @@ export class PropertiesPanel {
           <input type="number" step="1" value="${(mesh.rotation.z * 180 / Math.PI).toFixed(1)}" data-axis="rz">
         </div>
       </div>
+      <div class="prop-group">
+        <label>Масштаб</label>
+        <div class="prop-row">
+          <span class="axis-x">X:</span>
+          <input type="number" step="0.1" value="${mesh.scale.x.toFixed(2)}" data-axis="sx">
+        </div>
+        <div class="prop-row">
+          <span class="axis-y">Y:</span>
+          <input type="number" step="0.1" value="${mesh.scale.y.toFixed(2)}" data-axis="sy">
+        </div>
+        <div class="prop-row">
+          <span class="axis-z">Z:</span>
+          <input type="number" step="0.1" value="${mesh.scale.z.toFixed(2)}" data-axis="sz">
+        </div>
+      </div>
     `;
 
-    this.container.querySelectorAll('input').forEach((input) => {
+    const colorInput = this.container.querySelector('#prop-color');
+    const colorValue = this.container.querySelector('.color-value');
+
+    colorInput.addEventListener('input', () => {
+      mesh.material.color.set(colorInput.value);
+      colorValue.textContent = colorInput.value;
+    });
+
+    this.container.querySelectorAll('input[type="number"]').forEach((input) => {
       input.addEventListener('change', () => {
         const val = parseFloat(input.value);
         const axis = input.dataset.axis;
@@ -60,6 +96,9 @@ export class PropertiesPanel {
         if (axis === 'rx') mesh.rotation.x = val * Math.PI / 180;
         if (axis === 'ry') mesh.rotation.y = val * Math.PI / 180;
         if (axis === 'rz') mesh.rotation.z = val * Math.PI / 180;
+        if (axis === 'sx') mesh.scale.x = val;
+        if (axis === 'sy') mesh.scale.y = val;
+        if (axis === 'sz') mesh.scale.z = val;
       });
     });
   }

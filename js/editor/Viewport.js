@@ -141,6 +141,37 @@ export class Viewport {
     this.transformControls.setMode(mode);
   }
 
+  focusSelected() {
+    const mesh = this.editor.selected;
+    if (!mesh) return;
+    const box = new THREE.Box3().setFromObject(mesh);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3()).length();
+    const dist = size * 2;
+    const dir = this.camera.position.clone().sub(this.orbitControls.target).normalize();
+    this.camera.position.copy(center).add(dir.multiplyScalar(dist));
+    this.orbitControls.target.copy(center);
+    this.orbitControls.update();
+  }
+
+  setCameraView(viewName) {
+    const dist = 80;
+    const views = {
+      front:  new THREE.Vector3(0, 0, dist),
+      back:   new THREE.Vector3(0, 0, -dist),
+      left:   new THREE.Vector3(-dist, 0, 0),
+      right:  new THREE.Vector3(dist, 0, 0),
+      top:    new THREE.Vector3(0, dist, 0.01),
+      bottom: new THREE.Vector3(0, -dist, 0.01),
+    };
+    const pos = views[viewName];
+    if (!pos) return;
+    this.camera.position.copy(pos);
+    this.orbitControls.target.set(0, 0, 0);
+    this.camera.lookAt(0, 0, 0);
+    this.orbitControls.update();
+  }
+
   _animate() {
     requestAnimationFrame(() => this._animate());
     this.orbitControls.update();
