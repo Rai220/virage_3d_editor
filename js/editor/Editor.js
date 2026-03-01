@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CommandHistory } from '../commands/CommandHistory.js';
 import { AddObjectCmd } from '../commands/AddObjectCmd.js';
 import { RemoveObjectCmd } from '../commands/RemoveObjectCmd.js';
+import { BooleanCmd } from '../commands/BooleanCmd.js';
 
 export class Editor extends EventTarget {
   constructor() {
@@ -84,19 +85,8 @@ export class Editor extends EventTarget {
   }
 
   replaceObjects(meshA, meshB, result) {
-    this.scene.remove(meshA);
-    this.scene.remove(meshB);
-    const idxA = this.objects.indexOf(meshA);
-    if (idxA !== -1) this.objects.splice(idxA, 1);
-    const idxB = this.objects.indexOf(meshB);
-    if (idxB !== -1) this.objects.splice(idxB, 1);
-    meshA.geometry.dispose();
-    if (meshA.material.dispose) meshA.material.dispose();
-    meshB.geometry.dispose();
-    if (meshB.material.dispose) meshB.material.dispose();
-
-    this.addObjectDirect(result);
-    this.history.clear();
+    const cmd = new BooleanCmd(this, meshA, meshB, result);
+    this.history.execute(cmd);
   }
 
   getObjects() {
