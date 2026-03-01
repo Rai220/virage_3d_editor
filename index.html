@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virage 3D Editor</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/toolbar.css">
+  <link rel="stylesheet" href="css/dialogs.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170/examples/jsm/",
+      "three-bvh-csg": "https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.16/src/index.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header id="toolbar">
+    <div class="toolbar-left">
+      <button class="toolbar-btn" id="btn-menu" title="Меню">≡</button>
+      <div class="toolbar-group">
+        <button class="toolbar-btn" id="btn-primitives" title="Примитивы">
+          <span class="btn-icon">◻</span>
+          <span class="btn-label">Примитивы</span>
+        </button>
+        <div class="dropdown" id="primitives-dropdown">
+          <button class="dropdown-item" data-primitive="box">Куб</button>
+          <button class="dropdown-item" data-primitive="sphere">Сфера</button>
+          <button class="dropdown-item" data-primitive="cylinder">Цилиндр</button>
+          <button class="dropdown-item" data-primitive="cone">Конус</button>
+          <button class="dropdown-item" data-primitive="torus">Тор</button>
+        </div>
+      </div>
+      <button class="toolbar-btn" id="btn-boolean-union" title="Объединить">
+        <span class="btn-icon">⊕</span>
+        <span class="btn-label">Объединить</span>
+      </button>
+      <button class="toolbar-btn" id="btn-boolean-subtract" title="Вычесть">
+        <span class="btn-icon">⊖</span>
+        <span class="btn-label">Вычесть</span>
+      </button>
+      <button class="toolbar-btn" id="btn-export" title="Экспорт STL">
+        <span class="btn-icon">💾</span>
+        <span class="btn-label">Экспорт STL</span>
+      </button>
+    </div>
+    <div class="toolbar-right">
+      <button class="toolbar-btn" id="btn-undo" title="Отменить (Ctrl+Z)">↩ Отмена</button>
+      <button class="toolbar-btn" id="btn-redo" title="Повторить (Ctrl+Shift+Z)">↪ Повтор</button>
+    </div>
+  </header>
+
+  <main id="workspace">
+    <div id="viewport-container">
+      <canvas id="viewport"></canvas>
+    </div>
+    <aside id="properties-panel">
+      <h3>Свойства</h3>
+      <div id="properties-content">
+        <p class="hint">Выберите объект для редактирования</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer id="statusbar">
+    <div class="statusbar-left">
+      <button class="statusbar-btn active" id="btn-translate" title="Перемещение (W)">Перемещение</button>
+      <button class="statusbar-btn" id="btn-rotate" title="Вращение (E)">Вращение</button>
+      <button class="statusbar-btn" id="btn-scale" title="Масштаб (R)">Масштаб</button>
+    </div>
+    <div class="statusbar-center">
+      <span>⊞ Сетка: <select id="grid-size">
+        <option value="1">1мм</option>
+        <option value="5" selected>5мм</option>
+        <option value="10">10мм</option>
+      </select></span>
+    </div>
+    <div class="statusbar-right">
+      <span id="status-text">Готово</span>
+    </div>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

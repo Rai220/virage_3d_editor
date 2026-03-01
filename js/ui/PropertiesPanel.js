@@ -1,0 +1,66 @@
+export class PropertiesPanel {
+  constructor(editor) {
+    this.editor = editor;
+    this.container = document.getElementById('properties-content');
+
+    editor.addEventListener('selectionChanged', (e) => {
+      this._update(e.detail);
+    });
+  }
+
+  _update(mesh) {
+    if (!mesh) {
+      this.container.innerHTML = '<p class="hint">Выберите объект для редактирования</p>';
+      return;
+    }
+
+    this.container.innerHTML = `
+      <div class="prop-group">
+        <label>Тип: <strong>${mesh.name || 'Объект'}</strong></label>
+      </div>
+      <div class="prop-group">
+        <label>Позиция</label>
+        <div class="prop-row">
+          <span class="axis-x">X:</span>
+          <input type="number" step="1" value="${mesh.position.x.toFixed(1)}" data-axis="px">
+        </div>
+        <div class="prop-row">
+          <span class="axis-y">Y:</span>
+          <input type="number" step="1" value="${mesh.position.y.toFixed(1)}" data-axis="py">
+        </div>
+        <div class="prop-row">
+          <span class="axis-z">Z:</span>
+          <input type="number" step="1" value="${mesh.position.z.toFixed(1)}" data-axis="pz">
+        </div>
+      </div>
+      <div class="prop-group">
+        <label>Вращение (°)</label>
+        <div class="prop-row">
+          <span class="axis-x">X:</span>
+          <input type="number" step="1" value="${(mesh.rotation.x * 180 / Math.PI).toFixed(1)}" data-axis="rx">
+        </div>
+        <div class="prop-row">
+          <span class="axis-y">Y:</span>
+          <input type="number" step="1" value="${(mesh.rotation.y * 180 / Math.PI).toFixed(1)}" data-axis="ry">
+        </div>
+        <div class="prop-row">
+          <span class="axis-z">Z:</span>
+          <input type="number" step="1" value="${(mesh.rotation.z * 180 / Math.PI).toFixed(1)}" data-axis="rz">
+        </div>
+      </div>
+    `;
+
+    this.container.querySelectorAll('input').forEach((input) => {
+      input.addEventListener('change', () => {
+        const val = parseFloat(input.value);
+        const axis = input.dataset.axis;
+        if (axis === 'px') mesh.position.x = val;
+        if (axis === 'py') mesh.position.y = val;
+        if (axis === 'pz') mesh.position.z = val;
+        if (axis === 'rx') mesh.rotation.x = val * Math.PI / 180;
+        if (axis === 'ry') mesh.rotation.y = val * Math.PI / 180;
+        if (axis === 'rz') mesh.rotation.z = val * Math.PI / 180;
+      });
+    });
+  }
+}

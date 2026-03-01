@@ -1,0 +1,23 @@
+import { Editor } from './editor/Editor.js';
+import { Viewport } from './editor/Viewport.js';
+import { PrimitiveTool } from './tools/PrimitiveTool.js';
+import { Toolbar } from './ui/Toolbar.js';
+import { PropertiesPanel } from './ui/PropertiesPanel.js';
+
+function init() {
+  const canvas = document.getElementById('viewport');
+  const editor = new Editor();
+  const viewport = new Viewport(canvas, editor);
+  const primitiveTool = new PrimitiveTool(editor);
+
+  new Toolbar(editor, primitiveTool, viewport);
+  new PropertiesPanel(editor);
+
+  document.getElementById('status-text').textContent = 'Готово — Virage 3D Editor';
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

@@ -1,0 +1,121 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
+export class Viewport {
+  constructor(canvas, editor) {
+    this.canvas = canvas;
+    this.editor = editor;
+
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setClearColor(0xf0f0f0);
+    this.renderer.shadowMap.enabled = true;
+
+    this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 10000);
+    this.camera.position.set(50, 50, 50);
+    this.camera.lookAt(0, 0, 0);
+
+    this.orbitControls = new OrbitControls(this.camera, canvas);
+    this.orbitControls.enableDamping = true;
+    this.orbitControls.dampingFactor = 0.1;
+    this.orbitControls.mouseButtons = {
+      LEFT: null,
+      MIDDLE: THREE.MOUSE.PAN,
+      RIGHT: THREE.MOUSE.ROTATE,
+    };
+
+    this.transformControls = new TransformControls(this.camera, canvas);
+    this.transformControls.addEventListener('dragging-changed', (e) => {
+      this.orbitControls.enabled = !e.value;
+    });
+    editor.scene.add(this.transformControls.getHelper());
+
+    this._setupScene();
+    this._setupLights();
+    this._setupGrid();
+    this._setupRaycaster();
+    this._bindEvents();
+    this._resize();
+    this._animate();
+  }
+
+  _setupScene() {
+    this.editor.scene.background = new THREE.Color(0xf0f0f0);
+  }
+
+  _setupLights() {
+    const scene = this.editor.scene;
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
+
+    const dir1 = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir1.position.set(50, 100, 50);
+    dir1.castShadow = true;
+    scene.add(dir1);
+
+    const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
+    dir2.position.set(-50, 50, -50);
+    scene.add(dir2);
+  }
+
+  _setupGrid() {
+    const grid = new THREE.GridHelper(200, 200, 0xbbbbbb, 0xdddddd);
+    grid.material.opacity = 0.6;
+    grid.material.transparent = true;
+    this.editor.scene.add(grid);
+
+    const axesHelper = new THREE.AxesHelper(30);
+    this.editor.scene.add(axesHelper);
+  }
+
+  _setupRaycaster() {
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+  }
+
+  _bindEvents() {
+    window.addEventListener('resize', () => this._resize());
+
+    this.canvas.addEventListener('click', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      const intersects = this.raycaster.intersectObjects(this.editor.getObjects());
+
+      if (intersects.length > 0) {
+        const obj = intersects[0].object;
+        this.editor.select(obj);
+        this.transformControls.attach(obj);
+      } else {
+        this.editor.select(null);
+        this.transformControls.detach();
+      }
+    });
+
+    this.editor.addEventListener('objectAdded', (e) => {
+      this.transformControls.attach(e.detail);
+    });
+  }
+
+  _resize() {
+    const container = this.canvas.parentElement;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    this.renderer.setSize(w, h);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+  }
+
+  setTransformMode(mode) {
+    this.transformControls.setMode(mode);
+  }
+
+  _animate() {
+    requestAnimationFrame(() => this._animate());
+    this.orbitControls.update();
+    this.renderer.render(this.editor.scene, this.camera);
+  }
+}
