@@ -12,6 +12,7 @@
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.170/build/three.module.js",
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170/examples/jsm/",
+      "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.8/build/index.module.js",
       "three-bvh-csg": "https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.16/src/index.js"
     }
   }
@@ -20,31 +21,52 @@
 <body>
   <header id="toolbar">
     <div class="toolbar-left">
-      <button class="toolbar-btn" id="btn-menu" title="Меню">≡</button>
-      <div class="toolbar-group">
-        <button class="toolbar-btn" id="btn-primitives" title="Примитивы">
-          <span class="btn-icon">◻</span>
-          <span class="btn-label">Примитивы</span>
-        </button>
-        <div class="dropdown" id="primitives-dropdown">
-          <button class="dropdown-item" data-primitive="box">Куб</button>
-          <button class="dropdown-item" data-primitive="sphere">Сфера</button>
-          <button class="dropdown-item" data-primitive="cylinder">Цилиндр</button>
-          <button class="dropdown-item" data-primitive="cone">Конус</button>
-          <button class="dropdown-item" data-primitive="torus">Тор</button>
-        </div>
-      </div>
-      <button class="toolbar-btn" id="btn-boolean-union" title="Объединить">
-        <span class="btn-icon">⊕</span>
-        <span class="btn-label">Объединить</span>
+      <a class="toolbar-brand" href="https://github.com/Rai220/virage_3d_editor" target="_blank" rel="noopener" title="Virage 3D Editor — GitHub">
+        <svg class="brand-logo" viewBox="0 0 32 32" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="10" width="14" height="14" rx="2" fill="#4a90d9" opacity="0.85"/>
+          <rect x="10" y="6" width="14" height="14" rx="2" fill="#6ab0ff" opacity="0.7"/>
+          <rect x="14" y="2" width="14" height="14" rx="2" fill="#a0cfff" opacity="0.55"/>
+        </svg>
+        <span class="brand-name">Virage 3D</span>
+      </a>
+
+      <div class="toolbar-separator"></div>
+
+      <button class="toolbar-btn" id="btn-prim-box" data-primitive="box" title="Куб">
+        <span class="btn-icon">◻</span><span class="btn-label">Куб</span>
       </button>
-      <button class="toolbar-btn" id="btn-boolean-subtract" title="Вычесть">
-        <span class="btn-icon">⊖</span>
-        <span class="btn-label">Вычесть</span>
+      <button class="toolbar-btn" id="btn-prim-sphere" data-primitive="sphere" title="Сфера">
+        <span class="btn-icon">●</span><span class="btn-label">Сфера</span>
       </button>
-      <button class="toolbar-btn" id="btn-export" title="Экспорт STL">
-        <span class="btn-icon">💾</span>
-        <span class="btn-label">Экспорт STL</span>
+      <button class="toolbar-btn" id="btn-prim-cylinder" data-primitive="cylinder" title="Цилиндр">
+        <span class="btn-icon">⬬</span><span class="btn-label">Цилиндр</span>
+      </button>
+      <button class="toolbar-btn" id="btn-prim-cone" data-primitive="cone" title="Конус">
+        <span class="btn-icon">△</span><span class="btn-label">Конус</span>
+      </button>
+      <button class="toolbar-btn" id="btn-prim-torus" data-primitive="torus" title="Тор">
+        <span class="btn-icon">◎</span><span class="btn-label">Тор</span>
+      </button>
+
+      <div class="toolbar-separator"></div>
+
+      <button class="toolbar-btn" id="btn-boolean-union" title="Объединить два объекта">
+        <span class="btn-icon">⊕</span><span class="btn-label">Объединить</span>
+      </button>
+      <button class="toolbar-btn" id="btn-boolean-subtract" title="Вычесть один объект из другого">
+        <span class="btn-icon">⊖</span><span class="btn-label">Вычесть</span>
+      </button>
+
+      <div class="toolbar-separator"></div>
+
+      <button class="toolbar-btn" id="btn-save" title="Сохранить проект (JSON)">
+        <span class="btn-icon">💾</span><span class="btn-label">Сохранить</span>
+      </button>
+      <button class="toolbar-btn" id="btn-load" title="Загрузить проект (JSON)">
+        <span class="btn-icon">📂</span><span class="btn-label">Загрузить</span>
+      </button>
+      <button class="toolbar-btn" id="btn-export" title="Экспорт STL для 3D-печати">
+        <span class="btn-icon">🖨</span><span class="btn-label">Экспорт STL</span>
       </button>
     </div>
     <div class="toolbar-right">
@@ -80,6 +102,12 @@
     </div>
     <div class="statusbar-right">
       <span id="status-text">Готово</span>
+      <span class="statusbar-separator">|</span>
+      <a class="statusbar-link" href="https://github.com/rai220" target="_blank" rel="noopener" title="Автор">Константин Крестников (rai220)</a>
+      <span class="statusbar-separator">|</span>
+      <a class="statusbar-link" href="https://github.com/Rai220/virage_3d_editor" target="_blank" rel="noopener" title="Исходный код">GitHub</a>
+      <span class="statusbar-separator">|</span>
+      <a class="statusbar-link" href="https://github.com/Rai220/virage_3d_editor/blob/main/LICENSE" target="_blank" rel="noopener" title="Лицензия">MIT</a>
     </div>
   </footer>
 

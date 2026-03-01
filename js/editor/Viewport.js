@@ -20,9 +20,13 @@ export class Viewport {
     this.orbitControls.enableDamping = true;
     this.orbitControls.dampingFactor = 0.1;
     this.orbitControls.mouseButtons = {
-      LEFT: null,
+      LEFT: THREE.MOUSE.ROTATE,
       MIDDLE: THREE.MOUSE.PAN,
       RIGHT: THREE.MOUSE.ROTATE,
+    };
+    this.orbitControls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN,
     };
 
     this.transformControls = new TransformControls(this.camera, canvas);
@@ -77,7 +81,31 @@ export class Viewport {
   _bindEvents() {
     window.addEventListener('resize', () => this._resize());
 
-    this.canvas.addEventListener('click', (e) => {
+    this._pointerDownPos = null;
+    this._isDraggingGizmo = false;
+
+    this.transformControls.addEventListener('dragging-changed', (e) => {
+      this._isDraggingGizmo = e.value;
+    });
+
+    this.canvas.addEventListener('pointerdown', (e) => {
+      this._pointerDownPos = { x: e.clientX, y: e.clientY };
+    });
+
+    this.canvas.addEventListener('pointerup', (e) => {
+      if (!this._pointerDownPos) return;
+      if (this._isDraggingGizmo) {
+        this._pointerDownPos = null;
+        return;
+      }
+
+      const dx = e.clientX - this._pointerDownPos.x;
+      const dy = e.clientY - this._pointerDownPos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      this._pointerDownPos = null;
+
+      if (dist > 5) return;
+
       const rect = this.canvas.getBoundingClientRect();
       this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;

@@ -147,3 +147,20 @@ html, body {
   border-radius: 3px;
   font-size: 13px;
 }
+
+.statusbar-separator {
+  color: #bbb;
+  margin: 0 2px;
+  font-size: 11px;
+}
+
+.statusbar-link {
+  color: #4a90d9;
+  text-decoration: none;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.statusbar-link:hover {
+  text-decoration: underline;
+}
