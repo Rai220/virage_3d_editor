@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Brush, Evaluator, ADDITION, SUBTRACTION } from 'three-bvh-csg';
+import { Brush, Evaluator, ADDITION, SUBTRACTION, INTERSECTION } from 'three-bvh-csg';
 
 const RESULT_COLOR = 0x4a90d9;
 
@@ -15,6 +15,10 @@ export class BooleanTool {
 
   subtract(meshA, meshB) {
     return this._evaluate(meshA, meshB, SUBTRACTION, 'subtraction');
+  }
+
+  intersect(meshA, meshB) {
+    return this._evaluate(meshA, meshB, INTERSECTION, 'intersection');
   }
 
   _evaluate(meshA, meshB, operation, opName) {

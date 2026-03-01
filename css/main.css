@@ -105,6 +105,36 @@ html, body {
   border-color: #4a90d9;
 }
 
+.color-row {
+  gap: 8px;
+}
+
+.color-row input[type="color"] {
+  width: 36px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+}
+
+.color-row input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.color-row input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.color-value {
+  font-size: 12px;
+  color: #777;
+  font-family: monospace;
+  width: auto !important;
+}
+
 #statusbar {
   display: flex;
   justify-content: space-between;
