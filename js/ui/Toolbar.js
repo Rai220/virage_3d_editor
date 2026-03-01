@@ -147,6 +147,20 @@ export class Toolbar {
         this._deleteSelected();
       });
     }
+
+    const clearBtn = document.getElementById('btn-clear-all');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        this._cancelBooleanMode();
+        if (this.editor.getObjects().length === 0) {
+          this._setStatus('Сцена уже пуста');
+          return;
+        }
+        this.editor.clearScene();
+        this.viewport.transformControls.detach();
+        this._setStatus('Сцена очищена');
+      });
+    }
   }
 
   _bindSaveLoad() {

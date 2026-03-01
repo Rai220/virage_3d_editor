@@ -21,6 +21,20 @@ function init() {
   new Toolbar(editor, primitiveTool, viewport, booleanTool, projectIO, stlExport, stlImport);
   new PropertiesPanel(editor);
 
+  // starter scene
+  const box = primitiveTool.create('box');
+  box.position.set(-15, 5, 0);
+
+  const sphere = primitiveTool.create('sphere');
+  sphere.position.set(0, 5, 0);
+
+  const cyl = primitiveTool.create('cylinder');
+  cyl.position.set(15, 5, 0);
+
+  editor.select(null);
+  viewport.transformControls.detach();
+  editor.history.clear();
+
   document.getElementById('status-text').textContent = 'Готово — Virage 3D Editor';
 }
 
