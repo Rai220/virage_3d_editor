@@ -4,12 +4,16 @@ import { AddObjectCmd } from '../commands/AddObjectCmd.js';
 import { RemoveObjectCmd } from '../commands/RemoveObjectCmd.js';
 import { BooleanCmd } from '../commands/BooleanCmd.js';
 
+const EMISSIVE_SELECTED = 0x222244;
+const EMISSIVE_NONE = 0x000000;
+
 export class Editor extends EventTarget {
   constructor() {
     super();
     this.scene = new THREE.Scene();
     this.objects = [];
     this.selected = null;
+    this.selectedSet = new Set();
     this.history = new CommandHistory();
   }
 
@@ -31,14 +35,63 @@ export class Editor extends EventTarget {
   }
 
   select(mesh) {
-    if (this.selected) {
-      this.selected.material.emissive?.setHex(0x000000);
-    }
+    this._clearHighlights();
+    this.selectedSet.clear();
     this.selected = mesh;
     if (mesh) {
-      mesh.material.emissive?.setHex(0x222244);
+      mesh.material.emissive?.setHex(EMISSIVE_SELECTED);
+      this.selectedSet.add(mesh);
     }
     this.dispatchEvent(new CustomEvent('selectionChanged', { detail: mesh }));
+  }
+
+  selectToggle(mesh) {
+    if (!mesh) return;
+    if (this.selectedSet.has(mesh)) {
+      this.selectedSet.delete(mesh);
+      mesh.material.emissive?.setHex(EMISSIVE_NONE);
+      if (this.selected === mesh) {
+        this.selected = this.selectedSet.size > 0 ? [...this.selectedSet][this.selectedSet.size - 1] : null;
+      }
+    } else {
+      this.selectedSet.add(mesh);
+      mesh.material.emissive?.setHex(EMISSIVE_SELECTED);
+      this.selected = mesh;
+    }
+    this.dispatchEvent(new CustomEvent('selectionChanged', { detail: this.selected }));
+  }
+
+  selectAll() {
+    this._clearHighlights();
+    this.selectedSet.clear();
+    this.objects.forEach((m) => {
+      this.selectedSet.add(m);
+      m.material.emissive?.setHex(EMISSIVE_SELECTED);
+    });
+    this.selected = this.objects.length > 0 ? this.objects[this.objects.length - 1] : null;
+    this.dispatchEvent(new CustomEvent('selectionChanged', { detail: this.selected }));
+  }
+
+  removeSelected() {
+    const toRemove = [...this.selectedSet];
+    if (toRemove.length === 0) return 0;
+    toRemove.forEach((m) => {
+      const cmd = new RemoveObjectCmd(this, m);
+      this.history.execute(cmd);
+    });
+    this.selectedSet.clear();
+    this.selected = null;
+    this.dispatchEvent(new CustomEvent('selectionChanged', { detail: null }));
+    return toRemove.length;
+  }
+
+  _clearHighlights() {
+    this.selectedSet.forEach((m) => {
+      m.material.emissive?.setHex(EMISSIVE_NONE);
+    });
+    if (this.selected && !this.selectedSet.has(this.selected)) {
+      this.selected.material.emissive?.setHex(EMISSIVE_NONE);
+    }
   }
 
   duplicateSelected() {
@@ -79,6 +132,7 @@ export class Editor extends EventTarget {
     });
     this.objects = [];
     this.selected = null;
+    this.selectedSet.clear();
     this.history.clear();
     this.dispatchEvent(new CustomEvent('selectionChanged', { detail: null }));
     this.dispatchEvent(new CustomEvent('sceneCleared'));

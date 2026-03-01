@@ -63,6 +63,7 @@ export class Toolbar {
   _startBooleanMode(mode) {
     const objects = this.editor.getObjects();
     const selected = this.editor.selected;
+    const set = this.editor.selectedSet;
 
     if (objects.length < 2) {
       this._setStatus('Нужно минимум 2 объекта для булевой операции');
@@ -71,6 +72,23 @@ export class Toolbar {
 
     if (!selected) {
       this._setStatus('Сначала выберите основной объект (кликните по нему)');
+      return;
+    }
+
+    if (set.size === 2) {
+      const arr = [...set];
+      const base = arr[0];
+      const target = arr[1];
+      const statusLabels = { union: 'Объединение', subtract: 'Вычитание', intersect: 'Пересечение' };
+      try {
+        if (mode === 'union') this.booleanTool.union(base, target);
+        else if (mode === 'subtract') this.booleanTool.subtract(base, target);
+        else this.booleanTool.intersect(base, target);
+        this._setStatus(`${statusLabels[mode]} выполнено`);
+      } catch (err) {
+        console.error('Boolean operation failed:', err);
+        this._setStatus('Ошибка булевой операции — проверьте пересечение объектов');
+      }
       return;
     }
 
@@ -130,13 +148,13 @@ export class Toolbar {
   }
 
   _deleteSelected() {
-    if (!this.editor.selected) {
+    const count = this.editor.removeSelected();
+    if (count === 0) {
       this._setStatus('Нет выбранного объекта для удаления');
       return;
     }
-    this.editor.removeObject(this.editor.selected);
     this.viewport.transformControls.detach();
-    this._setStatus('Объект удалён');
+    this._setStatus(count > 1 ? `Удалено объектов: ${count}` : 'Объект удалён');
   }
 
   _bindDeleteButton() {
@@ -306,6 +324,14 @@ export class Toolbar {
         return;
       }
 
+      // Select All: Ctrl+A
+      if (e.ctrlKey && e.key === 'a') {
+        e.preventDefault();
+        this.editor.selectAll();
+        this._setStatus(`Выбрано объектов: ${this.editor.selectedSet.size}`);
+        return;
+      }
+
       // Duplicate: Ctrl+D
       if (e.ctrlKey && e.key === 'd') {
         e.preventDefault();
@@ -349,7 +375,7 @@ export class Toolbar {
       if (e.key === 'Escape') this._cancelBooleanMode();
 
       // Delete / Backspace
-      if ((e.key === 'Delete' || e.key === 'Backspace') && this.editor.selected) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && this.editor.selectedSet.size > 0) {
         e.preventDefault();
         this._deleteSelected();
       }

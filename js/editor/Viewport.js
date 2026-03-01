@@ -115,9 +115,13 @@ export class Viewport {
 
       if (intersects.length > 0) {
         const obj = intersects[0].object;
-        this.editor.select(obj);
+        if (e.shiftKey) {
+          this.editor.selectToggle(obj);
+        } else {
+          this.editor.select(obj);
+        }
         this.transformControls.attach(obj);
-      } else {
+      } else if (!e.shiftKey) {
         this.editor.select(null);
         this.transformControls.detach();
       }

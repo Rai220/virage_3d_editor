@@ -3,8 +3,8 @@ export class PropertiesPanel {
     this.editor = editor;
     this.container = document.getElementById('properties-content');
 
-    editor.addEventListener('selectionChanged', (e) => {
-      this._update(e.detail);
+    editor.addEventListener('selectionChanged', () => {
+      this._render();
     });
   }
 
@@ -12,12 +12,49 @@ export class PropertiesPanel {
     return '#' + color.getHexString();
   }
 
-  _update(mesh) {
-    if (!mesh) {
+  _render() {
+    const set = this.editor.selectedSet;
+    const mesh = this.editor.selected;
+
+    if (set.size === 0 || !mesh) {
       this.container.innerHTML = '<p class="hint">Выберите объект для редактирования</p>';
       return;
     }
 
+    if (set.size > 1) {
+      this._renderMulti(set);
+    } else {
+      this._renderSingle(mesh);
+    }
+  }
+
+  _renderMulti(set) {
+    this.container.innerHTML = `
+      <div class="prop-group">
+        <label>Выбрано объектов: <strong>${set.size}</strong></label>
+      </div>
+      <div class="prop-group">
+        <label>Цвет (для всех)</label>
+        <div class="prop-row color-row">
+          <input type="color" id="prop-color-multi" value="#4a90d9">
+          <span class="color-value">#4a90d9</span>
+        </div>
+      </div>
+      <p class="hint">Shift+клик — добавить/убрать объект из выделения</p>
+    `;
+
+    const colorInput = this.container.querySelector('#prop-color-multi');
+    const colorValue = this.container.querySelector('.color-value');
+
+    colorInput.addEventListener('input', () => {
+      set.forEach((m) => {
+        m.material.color.set(colorInput.value);
+      });
+      colorValue.textContent = colorInput.value;
+    });
+  }
+
+  _renderSingle(mesh) {
     const currentColor = this._colorToHex(mesh.material.color);
 
     this.container.innerHTML = `
