@@ -1,0 +1,17 @@
+{
+  "name": "virage-3d-editor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Браузерный 3D-редактор для обучения детей основам 3D-моделирования",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve . -p 3000 -s",
+    "lint": "eslint js/",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "serve": "^14.2.0"
+  }
+}
