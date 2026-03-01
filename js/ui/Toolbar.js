@@ -15,12 +15,14 @@ export class Toolbar {
     this._bindPrimitives();
     this._bindBooleanOps();
     this._bindDeleteButton();
+    this._bindDropToTable();
     this._bindSaveLoad();
     this._bindExportImport();
     this._bindUndoRedo();
     this._bindTransformModes();
     this._bindTransformRecording();
     this._bindGridSize();
+    this._bindViewToggles();
     this._bindKeyboard();
     this._bindDelete();
   }
@@ -177,6 +179,40 @@ export class Toolbar {
         this.editor.clearScene();
         this.viewport.transformControls.detach();
         this._setStatus('Сцена очищена');
+      });
+    }
+  }
+
+  _bindDropToTable() {
+    const btn = document.getElementById('btn-drop-to-table');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (this.editor.selectedSet.size === 0) {
+          this._setStatus('Выберите объект для размещения на столе');
+          return;
+        }
+        this.viewport.dropSelectedToTable();
+        this._setStatus('Объект размещён на столе');
+      });
+    }
+  }
+
+  _bindViewToggles() {
+    const snapBtn = document.getElementById('btn-toggle-snap');
+    if (snapBtn) {
+      snapBtn.addEventListener('click', () => {
+        const on = this.viewport.toggleSnap();
+        snapBtn.classList.toggle('active', on);
+        this._setStatus(on ? 'Прилипание включено' : 'Прилипание выключено');
+      });
+    }
+
+    const tableBtn = document.getElementById('btn-toggle-table');
+    if (tableBtn) {
+      tableBtn.addEventListener('click', () => {
+        const on = this.viewport.toggleBuildPlate();
+        tableBtn.classList.toggle('active', on);
+        this._setStatus(on ? 'Стол показан' : 'Стол скрыт');
       });
     }
   }
@@ -363,6 +399,15 @@ export class Toolbar {
       // Focus: F
       if (e.key === 'f') {
         this.viewport.focusSelected();
+        return;
+      }
+
+      // Drop to table: G
+      if (e.key === 'g') {
+        if (this.editor.selectedSet.size > 0) {
+          this.viewport.dropSelectedToTable();
+          this._setStatus('Объект размещён на столе');
+        }
         return;
       }
 
