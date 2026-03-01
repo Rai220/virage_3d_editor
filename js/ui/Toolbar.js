@@ -14,6 +14,7 @@ export class Toolbar {
 
     this._bindPrimitives();
     this._bindBooleanOps();
+    this._bindDeleteButton();
     this._bindSaveLoad();
     this._bindExportImport();
     this._bindUndoRedo();
@@ -126,6 +127,26 @@ export class Toolbar {
       this._booleanClickHandler = null;
     }
     this._booleanMode = null;
+  }
+
+  _deleteSelected() {
+    if (!this.editor.selected) {
+      this._setStatus('Нет выбранного объекта для удаления');
+      return;
+    }
+    this.editor.removeObject(this.editor.selected);
+    this.viewport.transformControls.detach();
+    this._setStatus('Объект удалён');
+  }
+
+  _bindDeleteButton() {
+    const btn = document.getElementById('btn-delete');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        this._cancelBooleanMode();
+        this._deleteSelected();
+      });
+    }
   }
 
   _bindSaveLoad() {
@@ -313,11 +334,10 @@ export class Toolbar {
       // Escape
       if (e.key === 'Escape') this._cancelBooleanMode();
 
-      // Delete
-      if (e.key === 'Delete' && this.editor.selected) {
-        this.editor.removeObject(this.editor.selected);
-        this.viewport.transformControls.detach();
-        this._setStatus('Объект удалён');
+      // Delete / Backspace
+      if ((e.key === 'Delete' || e.key === 'Backspace') && this.editor.selected) {
+        e.preventDefault();
+        this._deleteSelected();
       }
 
       // Camera views: 1-6
