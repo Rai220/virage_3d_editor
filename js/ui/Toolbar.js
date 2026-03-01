@@ -198,15 +198,6 @@ export class Toolbar {
   }
 
   _bindViewToggles() {
-    const snapBtn = document.getElementById('btn-toggle-snap');
-    if (snapBtn) {
-      snapBtn.addEventListener('click', () => {
-        const on = this.viewport.toggleSnap();
-        snapBtn.classList.toggle('active', on);
-        this._setStatus(on ? 'Прилипание включено' : 'Прилипание выключено');
-      });
-    }
-
     const tableBtn = document.getElementById('btn-toggle-table');
     if (tableBtn) {
       tableBtn.addEventListener('click', () => {

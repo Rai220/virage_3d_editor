@@ -35,15 +35,11 @@ export class Viewport {
     });
     editor.scene.add(this.transformControls.getHelper());
 
-    this.snapEnabled = true;
-    this.snapThreshold = 3;
-
     this._setupScene();
     this._setupLights();
     this._setupGrid();
     this._setupRaycaster();
     this._bindEvents();
-    this._bindSnapping();
     this._resize();
     this._animate();
   }
@@ -130,9 +126,14 @@ export class Viewport {
 
     this.canvas.addEventListener('pointerdown', (e) => {
       this._pointerDownPos = { x: e.clientX, y: e.clientY };
+      if (e.shiftKey) {
+        this.orbitControls.enabled = false;
+      }
     });
 
     this.canvas.addEventListener('pointerup', (e) => {
+      this.orbitControls.enabled = true;
+
       if (!this._pointerDownPos) return;
       if (this._isDraggingGizmo) {
         this._pointerDownPos = null;
@@ -227,66 +228,6 @@ export class Viewport {
     this.orbitControls.target.set(0, 0, 0);
     this.camera.lookAt(0, 0, 0);
     this.orbitControls.update();
-  }
-
-  _bindSnapping() {
-    this.transformControls.addEventListener('objectChange', () => {
-      if (!this.snapEnabled) return;
-      if (this.transformControls.mode !== 'translate') return;
-      const mesh = this.transformControls.object;
-      if (!mesh) return;
-      this._snapToNearby(mesh);
-    });
-  }
-
-  _snapToNearby(mesh) {
-    const box = new THREE.Box3().setFromObject(mesh);
-    const others = this.editor.getObjects().filter((m) => m !== mesh);
-
-    const t = this.snapThreshold;
-    let snapX = null, snapY = null, snapZ = null;
-    let bestDx = t, bestDy = t, bestDz = t;
-
-    const checkSnap = (a, b, best) => {
-      const d = Math.abs(a - b);
-      if (d < best) return { delta: b - a, best: d };
-      return null;
-    };
-
-    // Snap Y to table (Y=0 floor)
-    const floorD = Math.abs(box.min.y);
-    if (floorD < bestDy) { bestDy = floorD; snapY = -box.min.y; }
-
-    for (const other of others) {
-      const ob = new THREE.Box3().setFromObject(other);
-
-      // X axis: edge-to-edge
-      for (const [a, b] of [[box.max.x, ob.min.x], [box.min.x, ob.max.x], [box.min.x, ob.min.x], [box.max.x, ob.max.x]]) {
-        const r = checkSnap(a, b, bestDx);
-        if (r) { bestDx = r.best; snapX = r.delta; }
-      }
-
-      // Y axis: edge-to-edge + top-to-top
-      for (const [a, b] of [[box.min.y, ob.max.y], [box.max.y, ob.min.y], [box.min.y, ob.min.y], [box.max.y, ob.max.y]]) {
-        const r = checkSnap(a, b, bestDy);
-        if (r) { bestDy = r.best; snapY = r.delta; }
-      }
-
-      // Z axis: edge-to-edge
-      for (const [a, b] of [[box.max.z, ob.min.z], [box.min.z, ob.max.z], [box.min.z, ob.min.z], [box.max.z, ob.max.z]]) {
-        const r = checkSnap(a, b, bestDz);
-        if (r) { bestDz = r.best; snapZ = r.delta; }
-      }
-    }
-
-    if (snapX !== null) mesh.position.x += snapX;
-    if (snapY !== null) mesh.position.y += snapY;
-    if (snapZ !== null) mesh.position.z += snapZ;
-  }
-
-  toggleSnap() {
-    this.snapEnabled = !this.snapEnabled;
-    return this.snapEnabled;
   }
 
   _animate() {
