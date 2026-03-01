@@ -1,7 +1,40 @@
 .toolbar-left, .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+}
+
+.toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: #eee;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.toolbar-brand:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.brand-logo {
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 4px;
 }
 
 .toolbar-btn {
@@ -11,12 +44,13 @@
   background: none;
   border: 1px solid transparent;
   color: #eee;
-  padding: 6px 12px;
+  padding: 6px 10px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
   white-space: nowrap;
   min-height: 36px;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .toolbar-btn:hover {
