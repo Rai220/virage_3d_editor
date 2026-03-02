@@ -14,19 +14,27 @@ html, body {
   background: #f0f0f0;
 }
 
+html, body {
+  display: flex;
+  flex-direction: column;
+}
+
 #toolbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  height: 48px;
+  min-height: 48px;
   background: #2d2d2d;
-  padding: 0 8px;
+  padding: 4px 8px;
   user-select: none;
+  gap: 2px;
 }
 
 #workspace {
   display: flex;
-  height: calc(100vh - 48px - 36px);
+  flex: 1;
+  min-height: 0;
 }
 
 #viewport-container {
@@ -41,12 +49,78 @@ html, body {
   height: 100%;
 }
 
+#primitives-panel {
+  width: 80px;
+  background: #3a3a3a;
+  border-right: 1px solid #555;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  user-select: none;
+}
+
+#primitives-panel h3 {
+  font-size: 11px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-bottom: 2px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #555;
+}
+
+.prim-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: 1px solid transparent;
+  color: #ddd;
+  padding: 8px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.prim-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.prim-btn:active {
+  background: rgba(74, 144, 217, 0.3);
+}
+
+.prim-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.prim-label {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 #properties-panel {
   width: 220px;
   background: #fff;
   border-left: 1px solid #ccc;
   padding: 12px;
   overflow-y: auto;
+}
+
+#axis-indicator {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+  z-index: 10;
 }
 
 #properties-panel h3 {
@@ -169,6 +243,23 @@ html, body {
   background: #4a90d9;
   color: #fff;
   border-color: #3a7cc0;
+}
+
+.statusbar-btn kbd {
+  display: inline-block;
+  font-family: inherit;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-left: 3px;
+  line-height: 1.4;
+}
+
+.statusbar-btn.active kbd {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 #grid-size {

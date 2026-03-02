@@ -1,5 +1,6 @@
 .toolbar-left, .toolbar-right {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
 }
@@ -110,4 +111,50 @@
 
 .dropdown-item:hover {
   background: #4a90d9;
+}
+
+@media (max-width: 900px) {
+  .toolbar-btn .btn-label {
+    display: none;
+  }
+  .toolbar-btn {
+    padding: 6px 8px;
+  }
+  .toolbar-separator {
+    height: 20px;
+    margin: 0 2px;
+  }
+  #primitives-panel {
+    width: 60px;
+    padding: 6px 4px;
+  }
+  .prim-icon {
+    font-size: 18px;
+  }
+  .prim-label {
+    font-size: 10px;
+  }
+  #properties-panel {
+    width: 180px;
+  }
+}
+
+@media (max-width: 640px) {
+  .toolbar-btn .btn-label {
+    display: none;
+  }
+  .toolbar-btn {
+    padding: 4px 6px;
+    min-height: 30px;
+  }
+  .btn-icon {
+    font-size: 14px;
+  }
+  .brand-name {
+    display: none;
+  }
+  #properties-panel {
+    width: 150px;
+    padding: 8px;
+  }
 }

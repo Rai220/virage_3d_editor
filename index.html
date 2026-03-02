@@ -32,24 +32,6 @@
 
       <div class="toolbar-separator"></div>
 
-      <button class="toolbar-btn" id="btn-prim-box" data-primitive="box" title="Куб">
-        <span class="btn-icon">◻</span><span class="btn-label">Куб</span>
-      </button>
-      <button class="toolbar-btn" id="btn-prim-sphere" data-primitive="sphere" title="Сфера">
-        <span class="btn-icon">●</span><span class="btn-label">Сфера</span>
-      </button>
-      <button class="toolbar-btn" id="btn-prim-cylinder" data-primitive="cylinder" title="Цилиндр">
-        <span class="btn-icon">⬬</span><span class="btn-label">Цилиндр</span>
-      </button>
-      <button class="toolbar-btn" id="btn-prim-cone" data-primitive="cone" title="Конус">
-        <span class="btn-icon">△</span><span class="btn-label">Конус</span>
-      </button>
-      <button class="toolbar-btn" id="btn-prim-torus" data-primitive="torus" title="Тор">
-        <span class="btn-icon">◎</span><span class="btn-label">Тор</span>
-      </button>
-
-      <div class="toolbar-separator"></div>
-
       <button class="toolbar-btn" id="btn-boolean-union" title="Объединить два объекта">
         <span class="btn-icon">⊕</span><span class="btn-label">Объединить</span>
       </button>
@@ -94,8 +76,27 @@
   </header>
 
   <main id="workspace">
+    <aside id="primitives-panel">
+      <h3>Фигуры</h3>
+      <button class="prim-btn" id="btn-prim-box" data-primitive="box" title="Куб">
+        <span class="prim-icon">◻</span><span class="prim-label">Куб</span>
+      </button>
+      <button class="prim-btn" id="btn-prim-sphere" data-primitive="sphere" title="Сфера">
+        <span class="prim-icon">●</span><span class="prim-label">Сфера</span>
+      </button>
+      <button class="prim-btn" id="btn-prim-cylinder" data-primitive="cylinder" title="Цилиндр">
+        <span class="prim-icon">⬬</span><span class="prim-label">Цилиндр</span>
+      </button>
+      <button class="prim-btn" id="btn-prim-cone" data-primitive="cone" title="Конус">
+        <span class="prim-icon">△</span><span class="prim-label">Конус</span>
+      </button>
+      <button class="prim-btn" id="btn-prim-torus" data-primitive="torus" title="Тор">
+        <span class="prim-icon">◎</span><span class="prim-label">Тор</span>
+      </button>
+    </aside>
     <div id="viewport-container">
       <canvas id="viewport"></canvas>
+      <canvas id="axis-indicator"></canvas>
     </div>
     <aside id="properties-panel">
       <h3>Свойства</h3>
@@ -107,9 +108,9 @@
 
   <footer id="statusbar">
     <div class="statusbar-left">
-      <button class="statusbar-btn active" id="btn-translate" title="Перемещение (W)">Перемещение</button>
-      <button class="statusbar-btn" id="btn-rotate" title="Вращение (E)">Вращение</button>
-      <button class="statusbar-btn" id="btn-scale" title="Масштаб (R)">Масштаб</button>
+      <button class="statusbar-btn active" id="btn-translate" title="Перемещение (W)">Перемещение <kbd>W</kbd></button>
+      <button class="statusbar-btn" id="btn-rotate" title="Вращение (E)">Вращение <kbd>E</kbd></button>
+      <button class="statusbar-btn" id="btn-scale" title="Масштаб (R)">Масштаб <kbd>R</kbd></button>
     </div>
     <div class="statusbar-center">
       <span>⊞ Сетка: <select id="grid-size">
