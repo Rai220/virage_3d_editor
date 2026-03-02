@@ -32,11 +32,15 @@ export class Viewport {
     this.transformControls = new TransformControls(this.camera, canvas);
     editor.scene.add(this.transformControls.getHelper());
 
+    this._keysPressed = {};
+
     this._setupScene();
     this._setupLights();
     this._setupGrid();
     this._setupRaycaster();
+    this._setupAxisIndicator();
     this._bindEvents();
+    this._bindArrowKeys();
     this._resize();
     this._animate();
   }
@@ -258,6 +262,128 @@ export class Viewport {
     }
   }
 
+  _setupAxisIndicator() {
+    const axisCanvas = document.getElementById('axis-indicator');
+    if (!axisCanvas) return;
+
+    this._axisRenderer = new THREE.WebGLRenderer({ canvas: axisCanvas, alpha: true, antialias: true });
+    this._axisRenderer.setPixelRatio(window.devicePixelRatio);
+    this._axisRenderer.setSize(120, 120);
+
+    this._axisScene = new THREE.Scene();
+
+    this._axisCamera = new THREE.OrthographicCamera(-2.2, 2.2, 2.2, -2.2, 0.1, 100);
+    this._axisCamera.position.set(0, 0, 5);
+    this._axisCamera.lookAt(0, 0, 0);
+
+    const axLen = 1.4;
+    const axisGroup = new THREE.Group();
+
+    const xMat = new THREE.LineBasicMaterial({ color: 0xe74c3c, linewidth: 2 });
+    const yMat = new THREE.LineBasicMaterial({ color: 0x27ae60, linewidth: 2 });
+    const zMat = new THREE.LineBasicMaterial({ color: 0x2980b9, linewidth: 2 });
+
+    const xGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(axLen,0,0)]);
+    const yGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,axLen,0)]);
+    const zGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,axLen)]);
+
+    axisGroup.add(new THREE.Line(xGeo, xMat));
+    axisGroup.add(new THREE.Line(yGeo, yMat));
+    axisGroup.add(new THREE.Line(zGeo, zMat));
+
+    const coneH = 0.25;
+    const coneR = 0.08;
+    const coneGeo = new THREE.ConeGeometry(coneR, coneH, 8);
+
+    const xCone = new THREE.Mesh(coneGeo, new THREE.MeshBasicMaterial({ color: 0xe74c3c }));
+    xCone.position.set(axLen + coneH / 2, 0, 0);
+    xCone.rotation.z = -Math.PI / 2;
+    axisGroup.add(xCone);
+
+    const yCone = new THREE.Mesh(coneGeo.clone(), new THREE.MeshBasicMaterial({ color: 0x27ae60 }));
+    yCone.position.set(0, axLen + coneH / 2, 0);
+    axisGroup.add(yCone);
+
+    const zCone = new THREE.Mesh(coneGeo.clone(), new THREE.MeshBasicMaterial({ color: 0x2980b9 }));
+    zCone.position.set(0, 0, axLen + coneH / 2);
+    zCone.rotation.x = Math.PI / 2;
+    axisGroup.add(zCone);
+
+    this._axisScene.add(axisGroup);
+
+    this._axisLabels = this._createAxisLabels(axLen);
+    this._axisScene.add(this._axisLabels);
+  }
+
+  _createAxisLabels(axLen) {
+    const group = new THREE.Group();
+    const labels = [
+      { text: 'X', color: '#e74c3c', pos: new THREE.Vector3(axLen + 0.55, 0, 0) },
+      { text: 'Y', color: '#27ae60', pos: new THREE.Vector3(0, axLen + 0.55, 0) },
+      { text: 'Z', color: '#2980b9', pos: new THREE.Vector3(0, 0, axLen + 0.55) },
+    ];
+
+    labels.forEach(({ text, color, pos }) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.font = 'bold 48px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = color;
+      ctx.fillText(text, 32, 32);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.position.copy(pos);
+      sprite.scale.set(0.5, 0.5, 0.5);
+      group.add(sprite);
+    });
+
+    return group;
+  }
+
+  _bindArrowKeys() {
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        this._keysPressed[e.key] = true;
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        this._keysPressed[e.key] = false;
+      }
+    });
+  }
+
+  _updateArrowKeyMovement() {
+    const speed = 1.0;
+    const forward = new THREE.Vector3();
+    this.camera.getWorldDirection(forward);
+    forward.y = 0;
+    forward.normalize();
+
+    const right = new THREE.Vector3();
+    right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+    const move = new THREE.Vector3();
+
+    if (this._keysPressed['ArrowUp']) move.add(forward.clone().multiplyScalar(speed));
+    if (this._keysPressed['ArrowDown']) move.add(forward.clone().multiplyScalar(-speed));
+    if (this._keysPressed['ArrowLeft']) move.add(right.clone().multiplyScalar(-speed));
+    if (this._keysPressed['ArrowRight']) move.add(right.clone().multiplyScalar(speed));
+
+    if (move.lengthSq() > 0) {
+      this.camera.position.add(move);
+      this.orbitControls.target.add(move);
+    }
+  }
+
   _resize() {
     const container = this.canvas.parentElement;
     const w = container.clientWidth;
@@ -330,9 +456,17 @@ export class Viewport {
 
   _animate() {
     requestAnimationFrame(() => this._animate());
+    this._updateArrowKeyMovement();
     this.orbitControls.update();
     // Keep BoxHelpers in sync with their meshes every frame
     this._selectionHelpers.forEach((h) => h.update());
     this.renderer.render(this.editor.scene, this.camera);
+
+    if (this._axisRenderer) {
+      this._axisCamera.position.copy(this.camera.position).normalize().multiplyScalar(5);
+      this._axisCamera.lookAt(0, 0, 0);
+      this._axisCamera.up.copy(this.camera.up);
+      this._axisRenderer.render(this._axisScene, this._axisCamera);
+    }
   }
 }
