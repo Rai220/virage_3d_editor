@@ -47,6 +47,12 @@ export class BooleanTool {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
 
+    // Center the geometry so mesh.position sits at its visual center (gizmo will appear there)
+    const box = new THREE.Box3().setFromBufferGeometry(mesh.geometry);
+    const center = box.getCenter(new THREE.Vector3());
+    mesh.geometry.translate(-center.x, -center.y, -center.z);
+    mesh.position.copy(center);
+
     this.editor.replaceObjects(meshA, meshB, mesh);
     return mesh;
   }

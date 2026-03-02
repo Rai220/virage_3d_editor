@@ -155,7 +155,6 @@ export class Toolbar {
       this._setStatus('Нет выбранного объекта для удаления');
       return;
     }
-    this.viewport.transformControls.detach();
     this._setStatus(count > 1 ? `Удалено объектов: ${count}` : 'Объект удалён');
   }
 
@@ -177,7 +176,6 @@ export class Toolbar {
           return;
         }
         this.editor.clearScene();
-        this.viewport.transformControls.detach();
         this._setStatus('Сцена очищена');
       });
     }
@@ -260,7 +258,6 @@ export class Toolbar {
     if (undoBtn) {
       undoBtn.addEventListener('click', () => {
         if (this.editor.undo()) {
-          this.viewport.transformControls.detach();
           this._setStatus('Отменено');
         }
       });
@@ -269,7 +266,6 @@ export class Toolbar {
     if (redoBtn) {
       redoBtn.addEventListener('click', () => {
         if (this.editor.redo()) {
-          this.viewport.transformControls.detach();
           this._setStatus('Повторено');
         }
       });
@@ -297,26 +293,36 @@ export class Toolbar {
   }
 
   _bindTransformRecording() {
-    let oldPos, oldRot, oldScale, activeMesh;
+    let startStates = null;
 
     this.viewport.transformControls.addEventListener('mouseDown', () => {
-      activeMesh = this.viewport.transformControls.object;
-      if (!activeMesh) return;
-      oldPos = activeMesh.position.clone();
-      oldRot = activeMesh.rotation.clone();
-      oldScale = activeMesh.scale.clone();
+      const attached = this.viewport.transformControls.object;
+      if (!attached) return;
+
+      // For multi-selection, the pivot is attached — record all selected meshes
+      const meshes = (attached === this.viewport._selectionPivot)
+        ? [...this.editor.selectedSet]
+        : [attached];
+
+      startStates = meshes.map((m) => ({
+        mesh: m,
+        pos: m.position.clone(),
+        rot: m.rotation.clone(),
+        scale: m.scale.clone(),
+      }));
     });
 
     this.viewport.transformControls.addEventListener('mouseUp', () => {
-      if (!activeMesh || !oldPos) return;
-      const cmd = new TransformCmd(
-        activeMesh, oldPos, oldRot, oldScale,
-        activeMesh.position.clone(), activeMesh.rotation.clone(), activeMesh.scale.clone()
-      );
-      this.editor.history.undoStack.push(cmd);
+      if (!startStates) return;
+      startStates.forEach(({ mesh, pos, rot, scale }) => {
+        const cmd = new TransformCmd(
+          mesh, pos, rot, scale,
+          mesh.position.clone(), mesh.rotation.clone(), mesh.scale.clone()
+        );
+        this.editor.history.undoStack.push(cmd);
+      });
       this.editor.history.redoStack = [];
-      activeMesh = null;
-      oldPos = null;
+      startStates = null;
       this.editor.dispatchEvent(new CustomEvent('selectionChanged', { detail: this.editor.selected }));
     });
   }
@@ -335,7 +341,6 @@ export class Toolbar {
       if (e.ctrlKey && !e.shiftKey && e.key === 'z') {
         e.preventDefault();
         if (this.editor.undo()) {
-          this.viewport.transformControls.detach();
           this._setStatus('Отменено');
         }
         return;
@@ -345,7 +350,6 @@ export class Toolbar {
       if (e.ctrlKey && e.shiftKey && e.key === 'Z') {
         e.preventDefault();
         if (this.editor.redo()) {
-          this.viewport.transformControls.detach();
           this._setStatus('Повторено');
         }
         return;
@@ -374,7 +378,6 @@ export class Toolbar {
         e.preventDefault();
         const pasted = this.editor.pasteClipboard();
         if (pasted.length > 0) {
-          this.viewport.transformControls.attach(pasted[pasted.length - 1]);
           this._setStatus(pasted.length > 1 ? `Вставлено объектов: ${pasted.length}` : 'Объект вставлен');
         }
         return;
@@ -385,7 +388,6 @@ export class Toolbar {
         e.preventDefault();
         const dup = this.editor.duplicateSelected();
         if (dup) {
-          this.viewport.transformControls.attach(dup);
           this._setStatus('Дубликат создан');
         }
         return;

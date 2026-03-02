@@ -30,9 +30,6 @@ export class Viewport {
     };
 
     this.transformControls = new TransformControls(this.camera, canvas);
-    this.transformControls.addEventListener('dragging-changed', (e) => {
-      this.orbitControls.enabled = !e.value;
-    });
     editor.scene.add(this.transformControls.getHelper());
 
     this._setupScene();
@@ -46,6 +43,13 @@ export class Viewport {
 
   _setupScene() {
     this.editor.scene.background = new THREE.Color(0xf0f0f0);
+
+    // Invisible pivot used as TransformControls attachment point for multi-selection
+    this._selectionPivot = new THREE.Object3D();
+    this.editor.scene.add(this._selectionPivot);
+
+    // BoxHelpers for visual selection feedback: Map<mesh, BoxHelper>
+    this._selectionHelpers = new Map();
   }
 
   _setupLights() {
@@ -118,14 +122,57 @@ export class Viewport {
     window.addEventListener('resize', () => this._resize());
 
     this._pointerDownPos = null;
+    this._pointerDownShift = false;
     this._isDraggingGizmo = false;
+    this._pivotData = null;
 
     this.transformControls.addEventListener('dragging-changed', (e) => {
       this._isDraggingGizmo = e.value;
+      this.orbitControls.enabled = !e.value;
+    });
+
+    // When starting to drag with multi-selection: save each mesh's matrix relative to the pivot
+    this.transformControls.addEventListener('mouseDown', () => {
+      if (this.transformControls.object !== this._selectionPivot) {
+        this._pivotData = null;
+        return;
+      }
+      this._selectionPivot.updateMatrixWorld(true);
+      const pivInv = new THREE.Matrix4().copy(this._selectionPivot.matrixWorld).invert();
+      this._pivotData = [...this.editor.selectedSet].map((m) => {
+        m.updateMatrixWorld(true);
+        return {
+          mesh: m,
+          // localMatrix = pivotInverse * meshWorld => mesh in pivot's local space
+          localMatrix: new THREE.Matrix4().multiplyMatrices(pivInv, m.matrixWorld),
+        };
+      });
+    });
+
+    // While dragging: apply pivot transform to all group members
+    this.transformControls.addEventListener('change', () => {
+      if (!this._pivotData) return;
+      this._selectionPivot.updateMatrixWorld(true);
+      const _p = new THREE.Vector3();
+      const _q = new THREE.Quaternion();
+      const _s = new THREE.Vector3();
+      this._pivotData.forEach(({ mesh, localMatrix }) => {
+        new THREE.Matrix4()
+          .multiplyMatrices(this._selectionPivot.matrixWorld, localMatrix)
+          .decompose(_p, _q, _s);
+        mesh.position.copy(_p);
+        mesh.quaternion.copy(_q);
+        mesh.scale.copy(_s);
+      });
+    });
+
+    this.transformControls.addEventListener('mouseUp', () => {
+      this._pivotData = null;
     });
 
     this.canvas.addEventListener('pointerdown', (e) => {
       this._pointerDownPos = { x: e.clientX, y: e.clientY };
+      this._pointerDownShift = e.shiftKey;
       if (e.shiftKey) {
         this.orbitControls.enabled = false;
       }
@@ -143,7 +190,9 @@ export class Viewport {
       const dx = e.clientX - this._pointerDownPos.x;
       const dy = e.clientY - this._pointerDownPos.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
+      const wasShift = this._pointerDownShift;
       this._pointerDownPos = null;
+      this._pointerDownShift = false;
 
       if (dist > 5) return;
 
@@ -156,21 +205,57 @@ export class Viewport {
 
       if (intersects.length > 0) {
         const obj = intersects[0].object;
-        if (e.shiftKey) {
+        if (wasShift) {
           this.editor.selectToggle(obj);
         } else {
           this.editor.select(obj);
         }
-        this.transformControls.attach(obj);
-      } else if (!e.shiftKey) {
+      } else if (!wasShift) {
         this.editor.select(null);
-        this.transformControls.detach();
       }
+      // TransformControls attachment is handled by selectionChanged → _updateSelection()
     });
 
-    this.editor.addEventListener('objectAdded', (e) => {
-      this.transformControls.attach(e.detail);
+    // Respond to all selection changes from editor
+    this.editor.addEventListener('selectionChanged', () => {
+      this._updateSelection();
     });
+  }
+
+  // Rebuild BoxHelpers and attach TransformControls for current selection
+  _updateSelection() {
+    this._selectionHelpers.forEach((h) => this.editor.scene.remove(h));
+    this._selectionHelpers.clear();
+
+    const selected = [...this.editor.selectedSet];
+
+    if (selected.length === 0) {
+      this.transformControls.detach();
+      return;
+    }
+
+    // Cyan bounding box outline around each selected object
+    selected.forEach((mesh) => {
+      const helper = new THREE.BoxHelper(mesh, 0x00ccff);
+      this.editor.scene.add(helper);
+      this._selectionHelpers.set(mesh, helper);
+    });
+
+    if (selected.length === 1) {
+      this.transformControls.attach(selected[0]);
+    } else {
+      // Place pivot at the geometric centroid of all selected positions
+      const centroid = new THREE.Vector3();
+      selected.forEach((m) => centroid.add(m.position));
+      centroid.divideScalar(selected.length);
+
+      this._selectionPivot.position.copy(centroid);
+      this._selectionPivot.rotation.set(0, 0, 0);
+      this._selectionPivot.scale.set(1, 1, 1);
+      this._selectionPivot.updateMatrixWorld(true);
+
+      this.transformControls.attach(this._selectionPivot);
+    }
   }
 
   _resize() {
@@ -189,7 +274,20 @@ export class Viewport {
   dropToTable(mesh) {
     if (!mesh) return;
     const box = new THREE.Box3().setFromObject(mesh);
-    mesh.position.y -= box.min.y;
+
+    // Find the highest surface to land on: table (y=0) or top of any object with overlapping XZ footprint
+    let targetY = 0;
+    this.editor.objects.forEach((other) => {
+      if (other === mesh) return;
+      const otherBox = new THREE.Box3().setFromObject(other);
+      const xOverlap = box.max.x > otherBox.min.x && box.min.x < otherBox.max.x;
+      const zOverlap = box.max.z > otherBox.min.z && box.min.z < otherBox.max.z;
+      if (xOverlap && zOverlap) {
+        targetY = Math.max(targetY, otherBox.max.y);
+      }
+    });
+
+    mesh.position.y += targetY - box.min.y;
   }
 
   dropSelectedToTable() {
@@ -233,6 +331,8 @@ export class Viewport {
   _animate() {
     requestAnimationFrame(() => this._animate());
     this.orbitControls.update();
+    // Keep BoxHelpers in sync with their meshes every frame
+    this._selectionHelpers.forEach((h) => h.update());
     this.renderer.render(this.editor.scene, this.camera);
   }
 }
