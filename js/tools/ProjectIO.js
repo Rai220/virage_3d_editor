@@ -13,8 +13,8 @@ export class ProjectIO {
     this.editor = editor;
   }
 
-  save() {
-    const data = {
+  serializeScene() {
+    return {
       version: 1,
       objects: this.editor.getObjects().map((mesh) => {
         const geoJson = mesh.geometry.toJSON();
@@ -28,7 +28,41 @@ export class ProjectIO {
         };
       }),
     };
+  }
 
+  deserializeObjects(data) {
+    return (data.objects || []).map((obj) => {
+      let geometry;
+      const geoJson = obj.geometry;
+
+      const builder = GEOMETRY_BUILDERS[geoJson.type];
+      if (builder) {
+        geometry = builder(geoJson);
+      } else if (geoJson.data) {
+        geometry = this._parseBufferGeometry(geoJson.data);
+      } else {
+        console.warn('Unknown geometry type:', geoJson.type);
+        geometry = new THREE.BoxGeometry(10, 10, 10);
+      }
+
+      const material = new THREE.MeshStandardMaterial({
+        color: obj.color,
+        roughness: 0.5,
+        metalness: 0.1,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.name = obj.name || 'object';
+      mesh.position.fromArray(obj.position);
+      mesh.rotation.set(obj.rotation[0], obj.rotation[1], obj.rotation[2]);
+      mesh.scale.fromArray(obj.scale);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    });
+  }
+
+  save() {
+    const data = this.serializeScene();
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -68,34 +102,8 @@ export class ProjectIO {
   _loadData(data) {
     this.editor.clearScene();
 
-    (data.objects || []).forEach((obj) => {
-      let geometry;
-      const geoJson = obj.geometry;
-
-      const builder = GEOMETRY_BUILDERS[geoJson.type];
-      if (builder) {
-        geometry = builder(geoJson);
-      } else if (geoJson.data) {
-        geometry = this._parseBufferGeometry(geoJson.data);
-      } else {
-        console.warn('Unknown geometry type:', geoJson.type);
-        geometry = new THREE.BoxGeometry(10, 10, 10);
-      }
-
-      const material = new THREE.MeshStandardMaterial({
-        color: obj.color,
-        roughness: 0.5,
-        metalness: 0.1,
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.name = obj.name || 'object';
-      mesh.position.fromArray(obj.position);
-      mesh.rotation.set(obj.rotation[0], obj.rotation[1], obj.rotation[2]);
-      mesh.scale.fromArray(obj.scale);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      this.editor.addObject(mesh);
-    });
+    const meshes = this.deserializeObjects(data);
+    meshes.forEach((mesh) => this.editor.addObject(mesh));
   }
 
   _parseBufferGeometry(data) {

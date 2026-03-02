@@ -51,6 +51,7 @@ export class PropertiesPanel {
         m.material.color.set(colorInput.value);
       });
       colorValue.textContent = colorInput.value;
+      this.editor.dispatchEvent(new CustomEvent('propertyChanged'));
     });
   }
 
@@ -121,6 +122,7 @@ export class PropertiesPanel {
     colorInput.addEventListener('input', () => {
       mesh.material.color.set(colorInput.value);
       colorValue.textContent = colorInput.value;
+      this.editor.dispatchEvent(new CustomEvent('propertyChanged'));
     });
 
     this.container.querySelectorAll('input[type="number"]').forEach((input) => {
@@ -136,6 +138,7 @@ export class PropertiesPanel {
         if (axis === 'sx') mesh.scale.x = val;
         if (axis === 'sy') mesh.scale.y = val;
         if (axis === 'sz') mesh.scale.z = val;
+        this.editor.dispatchEvent(new CustomEvent('propertyChanged'));
       });
     });
   }
