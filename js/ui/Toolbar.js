@@ -63,6 +63,7 @@ export class Toolbar {
   }
 
   _startBooleanMode(mode) {
+    this._cancelBooleanMode();
     const objects = this.editor.getObjects();
     const selected = this.editor.selected;
     const set = this.editor.selectedSet;
@@ -77,15 +78,17 @@ export class Toolbar {
       return;
     }
 
-    if (set.size === 2) {
+    if (set.size >= 2) {
       const arr = [...set];
-      const base = arr[0];
-      const target = arr[1];
       const statusLabels = { union: 'Объединение', subtract: 'Вычитание', intersect: 'Пересечение' };
       try {
-        if (mode === 'union') this.booleanTool.union(base, target);
-        else if (mode === 'subtract') this.booleanTool.subtract(base, target);
-        else this.booleanTool.intersect(base, target);
+        let base = arr[0];
+        for (let i = 1; i < arr.length; i++) {
+          const target = arr[i];
+          if (mode === 'union') base = this.booleanTool.union(base, target);
+          else if (mode === 'subtract') base = this.booleanTool.subtract(base, target);
+          else base = this.booleanTool.intersect(base, target);
+        }
         this._setStatus(`${statusLabels[mode]} выполнено`);
       } catch (err) {
         console.error('Boolean operation failed:', err);
@@ -288,7 +291,7 @@ export class Toolbar {
 
   _setTransformModeUI(mode, btnId) {
     this.viewport.setTransformMode(mode);
-    document.querySelectorAll('.statusbar-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.statusbar-left .statusbar-btn').forEach((b) => b.classList.remove('active'));
     if (btnId) document.getElementById(btnId).classList.add('active');
   }
 
