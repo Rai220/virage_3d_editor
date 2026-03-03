@@ -1,3 +1,5 @@
+import { TransformCmd } from '../commands/TransformCmd.js';
+
 export class PropertiesPanel {
   constructor(editor) {
     this.editor = editor;
@@ -29,6 +31,8 @@ export class PropertiesPanel {
   }
 
   _renderMulti(set) {
+    const first = [...set][0];
+    const firstColor = this._colorToHex(first.material.color);
     this.container.innerHTML = `
       <div class="prop-group">
         <label>Выбрано объектов: <strong>${set.size}</strong></label>
@@ -36,8 +40,8 @@ export class PropertiesPanel {
       <div class="prop-group">
         <label>Цвет (для всех)</label>
         <div class="prop-row color-row">
-          <input type="color" id="prop-color-multi" value="#4a90d9">
-          <span class="color-value">#4a90d9</span>
+          <input type="color" id="prop-color-multi" value="${firstColor}">
+          <span class="color-value">${firstColor}</span>
         </div>
       </div>
       <p class="hint">Shift+клик — добавить/убрать объект из выделения</p>
@@ -129,6 +133,11 @@ export class PropertiesPanel {
       input.addEventListener('change', () => {
         const val = parseFloat(input.value);
         const axis = input.dataset.axis;
+
+        const oldPos = mesh.position.clone();
+        const oldRot = mesh.rotation.clone();
+        const oldScale = mesh.scale.clone();
+
         if (axis === 'px') mesh.position.x = val;
         if (axis === 'py') mesh.position.y = val;
         if (axis === 'pz') mesh.position.z = val;
@@ -138,6 +147,14 @@ export class PropertiesPanel {
         if (axis === 'sx') mesh.scale.x = val;
         if (axis === 'sy') mesh.scale.y = val;
         if (axis === 'sz') mesh.scale.z = val;
+
+        const cmd = new TransformCmd(
+          mesh, oldPos, oldRot, oldScale,
+          mesh.position.clone(), mesh.rotation.clone(), mesh.scale.clone()
+        );
+        this.editor.history.undoStack.push(cmd);
+        this.editor.history.redoStack = [];
+
         this.editor.dispatchEvent(new CustomEvent('propertyChanged'));
       });
     });

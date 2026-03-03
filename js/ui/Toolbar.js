@@ -63,6 +63,7 @@ export class Toolbar {
   }
 
   _startBooleanMode(mode) {
+    this._cancelBooleanMode();
     const objects = this.editor.getObjects();
     const selected = this.editor.selected;
     const set = this.editor.selectedSet;
@@ -288,7 +289,7 @@ export class Toolbar {
 
   _setTransformModeUI(mode, btnId) {
     this.viewport.setTransformMode(mode);
-    document.querySelectorAll('.statusbar-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.statusbar-left .statusbar-btn').forEach((b) => b.classList.remove('active'));
     if (btnId) document.getElementById(btnId).classList.add('active');
   }
 
