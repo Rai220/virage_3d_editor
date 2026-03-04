@@ -11,6 +11,7 @@ export class Viewport {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setClearColor(0xf0f0f0);
     this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 10000);
     this.camera.position.set(50, 50, 50);
@@ -64,6 +65,15 @@ export class Viewport {
     const dir1 = new THREE.DirectionalLight(0xffffff, 0.8);
     dir1.position.set(50, 100, 50);
     dir1.castShadow = true;
+    dir1.shadow.mapSize.width = 2048;
+    dir1.shadow.mapSize.height = 2048;
+    dir1.shadow.camera.left = -120;
+    dir1.shadow.camera.right = 120;
+    dir1.shadow.camera.top = 120;
+    dir1.shadow.camera.bottom = -120;
+    dir1.shadow.camera.near = 0.5;
+    dir1.shadow.camera.far = 300;
+    dir1.shadow.bias = -0.001;
     scene.add(dir1);
 
     const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
