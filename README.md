@@ -26,6 +26,12 @@
 | macOS (Intel) | `.dmg` (x86_64) |
 | Linux | `.deb`, `.AppImage` |
 
+> **macOS:** при первом запуске система может заблокировать приложение, так как оно не подписано. Чтобы открыть, выполните в терминале:
+> ```bash
+> xattr -cr "/Applications/Virage 3D Editor.app"
+> ```
+> Или: правый клик по приложению → «Открыть» → «Открыть» в диалоге.
+
 ### Демо
 
 [![Видео-демо Virage 3D Editor](https://img.youtube.com/vi/0JIB7wgi-40/maxresdefault.jpg)](https://youtu.be/0JIB7wgi-40)

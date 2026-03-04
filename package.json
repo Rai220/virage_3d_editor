@@ -1,6 +1,6 @@
 {
   "name": "virage-3d-editor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Браузерный 3D-редактор для обучения детей основам 3D-моделирования",
   "license": "MIT",
