@@ -1,5 +1,6 @@
 node_modules/
 dist/
 *.mp4
+*.mov
 src-tauri/target/
 src-tauri/gen/
