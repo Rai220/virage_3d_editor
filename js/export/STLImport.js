@@ -12,8 +12,12 @@ export class STLImport {
     input.type = 'file';
     input.accept = '.stl';
 
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
     input.addEventListener('change', (e) => {
       const file = e.target.files[0];
+      input.remove();
       if (!file) return;
 
       const reader = new FileReader();
