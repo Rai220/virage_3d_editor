@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { TransformCmd } from '../commands/TransformCmd.js';
 
 export class Toolbar {
@@ -11,9 +12,11 @@ export class Toolbar {
     this.stlImport = stlImport;
 
     this._booleanMode = null;
+    this._alignMode = null;
 
     this._bindPrimitives();
     this._bindBooleanOps();
+    this._bindAlignCenter();
     this._bindDeleteButton();
     this._bindDropToTable();
     this._bindSaveLoad();
@@ -64,6 +67,7 @@ export class Toolbar {
 
   _startBooleanMode(mode) {
     this._cancelBooleanMode();
+    this._cancelAlignMode();
     const objects = this.editor.getObjects();
     const selected = this.editor.selected;
     const set = this.editor.selectedSet;
@@ -150,6 +154,105 @@ export class Toolbar {
       this._booleanClickHandler = null;
     }
     this._booleanMode = null;
+  }
+
+  _bindAlignCenter() {
+    const btn = document.getElementById('btn-align-center');
+    if (btn) {
+      btn.addEventListener('click', () => this._startAlignCenterMode());
+    }
+  }
+
+  _startAlignCenterMode() {
+    this._cancelBooleanMode();
+    this._cancelAlignMode();
+
+    const selected = this.editor.selected;
+    const set = this.editor.selectedSet;
+
+    if (!selected) {
+      this._setStatus('Сначала выберите объект, который нужно центрировать');
+      return;
+    }
+
+    if (set.size >= 2) {
+      this._alignMultipleToTarget(selected, set);
+      return;
+    }
+
+    this._alignMode = { objectToMove: selected };
+    this._setStatus('Кликните по объекту-цели для центрирования');
+
+    this._alignClickHandler = (e) => {
+      if (!this._alignMode) return;
+
+      const dx = e.clientX - (this.viewport._pointerDownPos?.x ?? e.clientX);
+      const dy = e.clientY - (this.viewport._pointerDownPos?.y ?? e.clientY);
+      if (Math.sqrt(dx * dx + dy * dy) > 5) return;
+
+      const rect = this.viewport.canvas.getBoundingClientRect();
+      const mouse = this.viewport.mouse.clone();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      this.viewport.raycaster.setFromCamera(mouse, this.viewport.camera);
+      const intersects = this.viewport.raycaster.intersectObjects(this.editor.getObjects());
+
+      const hit = intersects.find((i) => i.object !== this._alignMode.objectToMove);
+      if (hit) {
+        const target = hit.object;
+        const mover = this._alignMode.objectToMove;
+        this._cancelAlignMode();
+        this._centerMeshOn(mover, target);
+        this._setStatus('Объект центрирован');
+      }
+    };
+
+    this.viewport.canvas.addEventListener('pointerup', this._alignClickHandler, { once: false });
+  }
+
+  _alignMultipleToTarget(primary, set) {
+    const targetBox = new THREE.Box3().setFromObject(primary);
+    const targetCenter = targetBox.getCenter(new THREE.Vector3());
+
+    [...set].forEach((mesh) => {
+      if (mesh === primary) return;
+      this._centerMeshOnPoint(mesh, targetCenter);
+    });
+
+    this.editor.dispatchEvent(new CustomEvent('selectionChanged', { detail: this.editor.selected }));
+    this._setStatus('Объекты центрированы');
+  }
+
+  _centerMeshOn(mover, target) {
+    const targetBox = new THREE.Box3().setFromObject(target);
+    const targetCenter = targetBox.getCenter(new THREE.Vector3());
+    this._centerMeshOnPoint(mover, targetCenter);
+    this.editor.dispatchEvent(new CustomEvent('selectionChanged', { detail: this.editor.selected }));
+  }
+
+  _centerMeshOnPoint(mesh, point) {
+    const box = new THREE.Box3().setFromObject(mesh);
+    const center = box.getCenter(new THREE.Vector3());
+    const offset = point.clone().sub(center);
+
+    const oldPos = mesh.position.clone();
+    mesh.position.add(offset);
+
+    const cmd = new TransformCmd(
+      mesh, oldPos, mesh.rotation.clone(), mesh.scale.clone(),
+      mesh.position.clone(), mesh.rotation.clone(), mesh.scale.clone()
+    );
+    this.editor.history.undoStack.push(cmd);
+    this.editor.history.redoStack = [];
+  }
+
+  _cancelAlignMode() {
+    if (this._alignClickHandler) {
+      this.viewport.canvas.removeEventListener('pointerup', this._alignClickHandler);
+      this._alignClickHandler = null;
+    }
+    this._alignMode = null;
   }
 
   _deleteSelected() {
@@ -433,8 +536,17 @@ export class Toolbar {
       if (e.key === 'e') this._setTransformModeUI('rotate', 'btn-rotate');
       if (e.key === 'r') this._setTransformModeUI('scale', 'btn-scale');
 
+      // Center: C
+      if (e.key === 'c') {
+        this._startAlignCenterMode();
+        return;
+      }
+
       // Escape
-      if (e.key === 'Escape') this._cancelBooleanMode();
+      if (e.key === 'Escape') {
+        this._cancelBooleanMode();
+        this._cancelAlignMode();
+      }
 
       // Delete / Backspace
       if ((e.key === 'Delete' || e.key === 'Backspace') && this.editor.selectedSet.size > 0) {
